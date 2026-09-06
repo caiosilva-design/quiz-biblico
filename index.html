@@ -1599,7 +1599,13 @@ function waiSolveFull(){
   if(!waiGameActive) return;
   const input = document.getElementById('waiGuessInput');
   const val = input.value.trim();
-  if(!val) return;
+  const feedback = document.getElementById('waiFeedback');
+  if(!val){
+    feedback.textContent = 'Digite um nome no campo antes de clicar em Resolver.';
+    feedback.className = 'feedback';
+    input.focus();
+    return;
+  }
   const char = waiDeck[waiIndex];
   if(normalizeGuess(val) === normalizeGuess(char.name)){
     waiRevealed = waiRevealed.map(() => true);
@@ -1608,7 +1614,6 @@ function waiSolveFull(){
   } else {
     waiWrong++;
     waiRenderLives();
-    const feedback = document.getElementById('waiFeedback');
     feedback.textContent = 'Não é esse... tenta uma letra ou pede uma dica.';
     feedback.className = 'feedback wrong';
     if(waiWrong >= WAI_MAX_WRONG) waiLoseRound();
