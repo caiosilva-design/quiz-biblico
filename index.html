@@ -167,7 +167,9 @@
     transition: all .15s ease;
     text-align:left;
   }
-  .choice-btn:hover{ border-color: var(--gold); transform: translateY(-1px); }
+  @media (hover:hover) and (pointer:fine){
+    .choice-btn:hover{ border-color: var(--gold); transform: translateY(-1px); }
+  }
   .choice-btn.selected{
     border-color: var(--gold);
     background: color-mix(in srgb, var(--gold) 18%, var(--sky));
@@ -473,9 +475,7 @@
     border-radius:14px; border:2px solid var(--card-border); background:var(--sky);
     cursor:pointer; font-family:'Lora',inherit; width:100%; transition: all .2s ease;
   }
-  .mode-card:hover{ border-color:var(--gold); transform:translateY(-2px); box-shadow:var(--shadow); }
   .mode-card .mc-emoji{ font-size:2rem; flex-shrink:0; transition: transform .25s ease; display:inline-block; }
-  .mode-card:hover .mc-emoji{ transform:scale(1.18) rotate(-6deg); }
   .mode-card .mc-title{ font-weight:bold; font-size:1.08rem; color:var(--ink); font-family:'Cinzel',serif; }
   .mode-card .mc-sub{ font-size:0.85rem; color:var(--ink-soft); }
 
@@ -498,7 +498,12 @@
     background:var(--sky); font-family:'Cinzel',serif; font-weight:bold; cursor:pointer;
     color:var(--ink); font-size:0.9rem; transition: all .15s ease;
   }
-  .wai-key:hover:not(:disabled){ border-color:var(--gold); transform:translateY(-2px); }
+  @media (hover:hover) and (pointer:fine){
+    .wai-key:hover:not(:disabled){ border-color:var(--gold); transform:translateY(-2px); }
+    .ws-cell:hover{ border-color:var(--gold); transform:scale(1.08); }
+    .mode-card:hover{ border-color:var(--gold); transform:translateY(-2px); box-shadow:var(--shadow); }
+    .mode-card:hover .mc-emoji{ transform:scale(1.18) rotate(-6deg); }
+  }
   .wai-key.correct{ background:var(--correct-bg); border-color:var(--correct); color:var(--correct); animation:letterPop .3s ease; }
   .wai-key.wrong{ background:var(--wrong-bg); border-color:var(--wrong); color:var(--wrong); opacity:0.65; animation:shakeKey .35s ease; }
   .wai-key:disabled{ cursor:default; }
@@ -506,19 +511,19 @@
   #waiHintsBox .note-box{ margin-top:8px; }
 
   /* ---------- CAÇA-PALAVRAS (versão animada e com linha de seleção) ---------- */
-  .ws-grid-wrap{ position:relative; overflow-x:auto; padding-bottom:6px; }
+  .ws-grid-wrap{ position:relative; width:100%; max-width:400px; margin:0 auto; touch-action:none; }
   .ws-grid{
-    display:grid; grid-template-columns:repeat(12,28px); grid-auto-rows:28px; gap:3px;
-    justify-content:center; margin:0 auto; position:relative; z-index:1;
+    display:grid; grid-template-columns:repeat(12, 1fr); gap:2px;
+    width:100%; margin:0 auto; position:relative; z-index:1; touch-action:none;
   }
   .ws-cell{
-    display:flex; align-items:center; justify-content:center;
-    background:var(--sky); border:1px solid var(--card-border); border-radius:5px;
-    font-weight:bold; font-size:0.8rem; cursor:pointer; user-select:none; color:var(--ink);
+    display:flex; align-items:center; justify-content:center; aspect-ratio:1/1; width:100%;
+    background:var(--sky); border:1px solid var(--card-border); border-radius:4px;
+    font-weight:bold; font-size:clamp(0.55rem, 2.6vw, 0.82rem); cursor:pointer; user-select:none; color:var(--ink);
     opacity:0; animation: wsCellIn .35s ease forwards; transition: background .2s ease, transform .15s ease;
+    touch-action:none;
   }
   @keyframes wsCellIn{ from{ opacity:0; transform:scale(0.5);} to{ opacity:1; transform:scale(1);} }
-  .ws-cell:hover{ border-color:var(--gold); transform:scale(1.08); }
   .ws-cell.sel{ background: color-mix(in srgb, var(--gold) 40%, var(--sky)); border-color:var(--gold); }
   .ws-cell.found{ border-color:var(--correct); color:var(--correct); font-weight:900; }
   .ws-line-svg{ position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:2; overflow:visible; }
@@ -1761,7 +1766,7 @@ function renderWsGrid(){
       cell.style.animationDelay = (idx*3) + 'ms';
       cell.textContent = wsGridData[r][c];
       cell.dataset.r = r; cell.dataset.c = c;
-      cell.onclick = () => wsCellClick(r,c);
+      cell.addEventListener('pointerdown', (e) => wsPointerDown(e, r, c));
       grid.appendChild(cell);
       idx++;
     }
@@ -1805,7 +1810,7 @@ function wsDrawPreviewLine(start, end){
   const s = wsCellCenter(start.r, start.c);
   const e = wsCellCenter(end.r, end.c);
   document.getElementById('wsPreviewLineG').innerHTML =
-    `<line x1="${s.x}" y1="${s.y}" x2="${e.x}" y2="${e.y}" stroke="var(--gold)" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 7" opacity="0.7"/>`;
+    `<line x1="${s.x}" y1="${s.y}" x2="${e.x}" y2="${e.y}" stroke="var(--gold)" stroke-width="6" stroke-linecap="round" stroke-dasharray="2 7" opacity="0.75"/>`;
 }
 
 function wsDrawFoundLine(start, end, color){
@@ -1815,37 +1820,64 @@ function wsDrawFoundLine(start, end, color){
   line.setAttribute('x1', s.x); line.setAttribute('y1', s.y);
   line.setAttribute('x2', e.x); line.setAttribute('y2', e.y);
   line.setAttribute('stroke', color); line.setAttribute('stroke-width', '9');
-  line.setAttribute('stroke-linecap', 'round'); line.setAttribute('opacity', '0.4');
+  line.setAttribute('stroke-linecap', 'round'); line.setAttribute('opacity', '0.45');
   document.getElementById('wsFoundLinesG').appendChild(line);
 }
 
-function wsPointerMove(e){
-  if(!wsSelStart) return;
-  let clientX, clientY;
-  if(e.touches && e.touches[0]){ clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
-  else { clientX = e.clientX; clientY = e.clientY; }
-  const el = document.elementFromPoint(clientX, clientY);
-  if(!el || !el.classList.contains('ws-cell')){ return; }
-  const r = parseInt(el.dataset.r), c = parseInt(el.dataset.c);
-  const dr = r - wsSelStart.r, dc = c - wsSelStart.c;
-  const straight = (dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc));
-  if(!straight){ wsHidePreviewLine(); return; }
-  wsDrawPreviewLine(wsSelStart, {r,c});
+function wsHighlightPath(start, end){
+  wsClearSelectionStyles();
+  const dr = end.r-start.r, dc = end.c-start.c;
+  const steps = Math.max(Math.abs(dr), Math.abs(dc));
+  const stepR = dr === 0 ? 0 : dr/Math.abs(dr);
+  const stepC = dc === 0 ? 0 : dc/Math.abs(dc);
+  for(let i=0; i<=steps; i++){
+    const rr = start.r+stepR*i, cc = start.c+stepC*i;
+    const el = wsGridEl(rr,cc);
+    if(el) el.classList.add('sel');
+  }
 }
 
-function wsCellClick(r,c){
-  if(!wsSelStart){
-    wsSelStart = {r,c};
-    wsClearSelectionStyles();
-    wsGridEl(r,c).classList.add('sel');
-    return;
-  }
-  const start = wsSelStart;
-  const end = {r,c};
-  wsSelStart = null;
-  wsClearSelectionStyles();
-  wsHidePreviewLine();
+// ---- Seleção por arraste (mouse ou toque), via Pointer Events ----
+let wsDragging = false;
+let wsLastCell = null;
 
+function wsPointerDown(e, r, c){
+  e.preventDefault();
+  wsDragging = true;
+  wsSelStart = {r,c};
+  wsLastCell = {r,c};
+  wsClearSelectionStyles();
+  wsGridEl(r,c).classList.add('sel');
+}
+
+function wsPointerMoveGlobal(e){
+  if(!wsDragging || !wsSelStart) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  if(!el || !el.classList.contains('ws-cell')) return;
+  const r = parseInt(el.dataset.r), c = parseInt(el.dataset.c);
+  if(wsLastCell && wsLastCell.r === r && wsLastCell.c === c) return;
+  wsLastCell = {r,c};
+  const dr = r - wsSelStart.r, dc = c - wsSelStart.c;
+  const straight = (dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc));
+  if(straight){
+    wsDrawPreviewLine(wsSelStart, {r,c});
+    wsHighlightPath(wsSelStart, {r,c});
+  }
+}
+
+function wsPointerUpGlobal(e){
+  if(!wsDragging) return;
+  wsDragging = false;
+  wsHidePreviewLine();
+  const start = wsSelStart;
+  const end = wsLastCell || wsSelStart;
+  wsSelStart = null;
+  wsLastCell = null;
+  wsClearSelectionStyles();
+  if(start) wsFinalizeSelection(start, end);
+}
+
+function wsFinalizeSelection(start, end){
   const dr = end.r - start.r, dc = end.c - start.c;
   const steps = Math.max(Math.abs(dr), Math.abs(dc));
   const straight = (dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc));
@@ -1885,8 +1917,9 @@ function wsCellClick(r,c){
   }
 }
 
-document.getElementById('wsGridWrap').addEventListener('mousemove', wsPointerMove);
-document.getElementById('wsGridWrap').addEventListener('touchmove', wsPointerMove, {passive:true});
+document.addEventListener('pointermove', wsPointerMoveGlobal);
+document.addEventListener('pointerup', wsPointerUpGlobal);
+document.addEventListener('pointercancel', wsPointerUpGlobal);
 </script>
 </body>
 </html>
